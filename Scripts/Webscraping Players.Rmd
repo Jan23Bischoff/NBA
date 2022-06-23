@@ -1,0 +1,52 @@
+# NBA 2021/2022 Analysis
+## Getting the Data
+
+For this analysis I will mainly use the data from https://www.basketball-reference.com/
+
+### Scraping 
+```{r}
+library(tidyverse)
+```
+
+```{r}
+html <- read_html("https://www.basketball-reference.com/")
+
+html %>%
+  html_elements("#teams .left a") %>%
+  html_attr("href") -> team_pages
+
+team_pages <- paste0("https://www.basketball-reference.com", team_pages)
+
+```
+```{r}
+html %>%
+  html_elements("#teams .left a") %>%
+  html_attr("title") -> team_names
+```
+
+```{r}
+get_players <- function(team_url, team_name){
+  all_tables <- read_html(team_url) %>%
+  html_table()
+  players <- all_tables[[1]]
+  #convert to character because problems arose
+  players$No. = as.character(players$No.)
+  players$team <- team_name
+  players
+}
+all_players <- map2_df(team_pages, team_names, get_players)
+```
+
+1 Roster
+2 Per Game
+3 Per Game / Playoffs
+4 Totals
+5 Totals Playoffs
+6 Advanced
+7 Advanced Playoffs
+
+```{r}
+write_csv(all_players, "../Data/all_players.csv")
+
+```
+

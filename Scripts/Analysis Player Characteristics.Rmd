@@ -1,0 +1,81 @@
+---
+output:
+  html_document: default
+  pdf_document: default
+---
+```{r}
+knitr::opts_chunk$set(message = FALSE, warning = FALSE)
+```
+
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+df_players <- read_csv("../Data/all_players.csv")
+```
+
+```{r}
+glimpse(df_players)
+```
+##Data preparation
+Problems: 
+No. : Multiple Numbers, NA
+Player: (TW) Two Way Player
+Pos :
+Ht: no numerical but "-"
+Wt is in good format
+`Birth Date` : Converting to date
+...7 : Rename column and abbreviations with country code
+Exp: R for Rookie, convert to 0
+College: Multiple colleges due to transfers, no college -> international or from high school /G-League
+team: player for multiple teams
+
+No duplicated names therefore trades are not in this dataset
+
+### Handle problems
+```{r clean_col_player}
+df_players$two_way <- stringr::str_detect(df_players$Player, "TW")
+df_players$Player <- str_remove(df_players$Player, "\\s\\(TW\\)")
+
+```
+
+There are `r sum(df_players$two_way)` Two way players in the dataset.
+
+
+There are `r sum(stringr::str_count(df_players$No., ","), na.rm = TRUE)` players who used multiple numbers. Namely these are:
+```{r clean_col_no}
+
+df_players[grep(",", df_players$No.),]
+
+df_players[df_players$Player == "Andre Drummond","No."] <- "0"
+df_players[df_players$Player == "Brandon Goodwin","No."] <- "00"
+df_players[df_players$Player == "Brandon Williams","No."] <- "8"
+
+df_players$number <- as.numeric(df_players$No.)
+
+```
+A research on nba.com led me to use 0 for Drummond, 00 for Goodwin and 8 for Williams. Because 00 gets converted to 0 but I also want to use the original values, I decided to create an additional column for numeric values of the numbers. NA values from players who did not play due to injury??
+```{r}
+hist(df_players$number)
+```
+Next I look at the colleges and here some players did transfered. Therefore, some players have multiple Colleges.
+```{r}
+df_players %>%
+  select(College) %>%
+  separate_rows(College, sep = ",\\s") %>%
+  group_by(College) %>%
+  summarise(count = n()) %>%
+  arrange(desc(count)) %>%
+  top_n(10)
+```
+Here we see the colleges which have the most active players in the NBA. It should not be a surprise that the premier college basketball programs have the most players. The highest number is NA. In this case this means that the player did not go to college. All international players are in this category. Additionally all players who went straight from highschool to the NBA and in the recent years all players who skipped College to go overseas or go to the G-League. Note: Directly going from highschool to the NBA In July 2005 the new collective bargaining agreement required that the minimum age for entry into the NBA be 19 and that entrants be at least one year removed from high school. This holds until now.
+```{r}
+#TODO Get source for collective bargaining agreement
+```
+
+
+
+
+
